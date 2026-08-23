@@ -29,9 +29,15 @@ jobs:
           cp brand.css site/brand.css
           python3 - <<'PY'
           from pathlib import Path
+          import re
           p = Path('site/index.html')
           html = p.read_text()
-          html = html.replace('</head>', '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@600&display=swap" rel="stylesheet"><link rel="stylesheet" href="brand.css?v=2-green-light"></head>')
+          html = html.replace('</head>', '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@600&display=swap" rel="stylesheet"><link rel="stylesheet" href="brand.css?v=3-stock-day"></head>')
+          old_w = "W=[['HÚS + HASÁB','PÉNTEKEN → KEDDI ÉRKEZÉS',[1,2],['meat','fries'],0],['HÚS + HASÁB','KEDDEN → CSÜTÖRTÖKI ÉRKEZÉS',[3,4],['meat','fries'],0],['HÚS + HASÁB','SZERDÁN → SZOMBATI ÉRKEZÉS',[5,6,0],['meat','fries'],1],['BUCI + ZÖLDSÉG','HÉTFŐN → KEDDI ÉRKEZÉS',[1,2,3],['bun','tomato','lettuce','onion','pickle'],0],['BUCI + ZÖLDSÉG','CSÜTÖRTÖKÖN → PÉNTEKI ÉRKEZÉS',[4,5,6,0],['bun','tomato','lettuce','onion','pickle'],0]]"
+          new_w = "W=[['HÚS + HASÁB','PÉNTEKEN → KEDDI ÉRKEZÉS',[1,2],['meat','fries'],0,[4,5,6,0]],['HÚS + HASÁB','KEDDEN → CSÜTÖRTÖKI ÉRKEZÉS',[3,4],['meat','fries'],0,[1,2]],['HÚS + HASÁB','SZERDÁN → SZOMBATI ÉRKEZÉS',[5,6,0],['meat','fries'],1,[2,3,4]],['BUCI + ZÖLDSÉG','HÉTFŐN → KEDDI ÉRKEZÉS',[1,2,3],['bun','tomato','lettuce','onion','pickle'],0,[0]],['BUCI + ZÖLDSÉG','CSÜTÖRTÖKÖN → PÉNTEKI ÉRKEZÉS',[4,5,6,0],['bun','tomato','lettuce','onion','pickle'],0,[3]]]"
+          html = html.replace(old_w, new_w)
+          new_orow = r'''function orow(id,w,k){let p=P[k],net=w[2].reduce((z,d)=>z+calc(d,k),0),tar=up(net*(1+safe(k,w[4])),p[1]),stock=Math.max(0,+(inv[id]?.[k]||0)),burn=(w[5]||[]).reduce((z,d)=>z+calc(d,k),0),arrival=Math.max(0,stock-burn),need=up(Math.max(0,tar-arrival),p[1]),out=k==='bun'?Math.ceil(need/48)+' KARTON ('+Math.ceil(need/48)*48+' DB)':k==='pickle'?Math.ceil(need/12)+' KARTON ('+Math.ceil(need/12)*12+' KG)':num(need,p[1]%1?1:0)+' KG',arrivalText=k==='bun'?num(arrival,0)+' DB':num(arrival,1)+' KG';return '<div class="orow"><div><b>'+p[0]+'</b><div class="mut">CÉLKÉSZLET '+(k==='bun'?num(tar,0)+' DB':num(tar,p[1]%1?1:0)+' KG')+'</div></div><div><span class="mut">NETTÓ IGÉNY</span><br>'+(k==='bun'?num(net,0)+' DB':num(net,1)+' KG')+'</div><div><span class="mut">JELENLEGI KÉSZLET ('+p[2]+')</span><div class="mut mini">RENDELÉS NAPJÁN</div><input data-stock="'+id+'|'+k+'" type="number" min="0" value="'+(stock||'')+'"><div class="mut mini">ÉRKEZÉSKOR VÁRHATÓ: '+arrivalText+'</div></div><div><span class="mut">RENDELENDŐ</span><br><b class="qty">'+out+'</b></div></div>'}function orders()'''
+          html = re.sub(r"function orow\(id,w,k\)\{.*?\}function orders\(\)", new_orow, html, flags=re.S)
           p.write_text(html)
           PY
           touch site/.nojekyll
